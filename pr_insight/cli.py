@@ -44,6 +44,8 @@ class PRInsightCLI:
     pr-insight pr improve --pr-url https://github.com/user/repo/pull/123 --extended
     pr-insight config list
     pr-insight help review
+
+💡 Tip: Try Groq models for faster inference! Run 'pr-insight config wizard' to set up Groq.
     """
         )
         parser.add_argument(
@@ -340,6 +342,8 @@ Options:
 Examples:
   pr-insight pr ask "What does this PR do?" --pr-url https://github.com/user/repo/pull/123
   pr-insight pr ask "Review this function" --pr-url https://github.com/user/repo/pull/123 --line-numbers 10-25
+
+💡 Tip: Groq models are optimized for fast inference and work great with this command!
         """
 
 

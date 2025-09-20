@@ -20,6 +20,8 @@ class ConfigWizard:
     def __init__(self):
         self.settings = get_settings()
         self.config_file = Path.home() / '.pr-insight.toml'
+        self.config_data = {}
+        self.model_config = None  # Will be set if Groq is selected
 
     def run(self):
         """Run the configuration wizard."""
@@ -103,7 +105,7 @@ class ConfigWizard:
         print("\n🤖 AI Provider Setup")
         print("-" * 20)
 
-        providers = ['openai', 'anthropic', 'google', 'azure']
+        providers = ['openai', 'anthropic', 'google', 'azure', 'groq']
         print("Supported AI providers:")
         for i, provider in enumerate(providers, 1):
             print(f"  {i}. {provider.title()}")
@@ -127,7 +129,8 @@ class ConfigWizard:
             'openai': 'OPENAI_API_KEY',
             'anthropic': 'ANTHROPIC_API_KEY',
             'google': 'GOOGLE_API_KEY',
-            'azure': 'AZURE_OPENAI_API_KEY'
+            'azure': 'AZURE_OPENAI_API_KEY',
+            'groq': 'GROQ_API_KEY'
         }
 
         api_key = self._get_input_with_default(
@@ -148,6 +151,57 @@ class ConfigWizard:
                         'key': api_key,
                         'endpoint': input("Azure OpenAI endpoint (optional): ").strip() or None
                     }
+                }
+            elif ai_provider == 'groq':
+                self.config_data['groq'] = {'key': api_key}
+
+                # Ask which Groq model to use as default
+                print("\n🦙 Groq Models Available:")
+                groq_models = [
+                    'llama3-8b-8192',
+                    'llama3-70b-8192',
+                    'llama3.1-8b-instant',
+                    'llama3.1-70b-versatile',
+                    'llama3.1-405b-reasoner',
+                    'mixtral-8x7b-32768',
+                    'gemma-7b-it',
+                    'gemma2-9b-it'
+                ]
+
+                print("Recommended models:")
+                for i, model in enumerate(groq_models[:4], 1):  # Show first 4 as recommended
+                    print(f"  {i}. {model}")
+
+                while True:
+                    model_choice = input(f"\nWhich Groq model would you like to use? [1-{len(groq_models)}] (default: 2): ").strip()
+                    if not model_choice:
+                        selected_model = groq_models[1]  # Default to llama3-70b-8192
+                        break
+                    try:
+                        model_idx = int(model_choice) - 1
+                        if 0 <= model_idx < len(groq_models):
+                            selected_model = groq_models[model_idx]
+                            break
+                        else:
+                            print(f"Please enter a number between 1 and {len(groq_models)}")
+                    except ValueError:
+                        print("Please enter a valid number")
+
+                print(f"Selected model: {selected_model}")
+
+                # Ask about fallback models
+                fallback_input = input("Use OpenAI models as fallback? [Y/n]: ").strip().lower()
+                if fallback_input in ['', 'y', 'yes']:
+                    fallback_models = ["gpt-4o-2024-11-20", "gpt-4o-mini-2024-07-18"]
+                    print(f"Will use {fallback_models} as fallback models")
+                else:
+                    fallback_models = []
+                    print("No fallback models configured")
+
+                # Set the model configuration
+                self.model_config = {
+                    'model': selected_model,
+                    'fallback_models': fallback_models
                 }
 
     def _get_input_with_default(self, prompt: str, env_var: str) -> Optional[str]:
@@ -181,6 +235,19 @@ class ConfigWizard:
                 print(f"  export {key.upper()}_API_KEY=your_key_here")
             elif key == 'github' and 'user_token' in value:
                 print("  export GITHUB_TOKEN=your_github_token_here")
+
+        # If Groq was selected, show model information
+        if self.model_config:
+            print("\n🤖 Groq Model Configuration:")
+            print(f"  Primary model: {self.model_config['model']}")
+            if self.model_config['fallback_models']:
+                print(f"  Fallback models: {', '.join(self.model_config['fallback_models'])}")
+            print("\n💡 To use these models, add to your .pr-insight.toml or settings:")
+            print(f"  [config]")
+            print(f"  model=\"{self.model_config['model']}\"")
+            if self.model_config['fallback_models']:
+                print(f"  fallback_models={self.model_config['fallback_models']}")
+            print("\n🦙 Groq models are optimized for speed and are great for fast code review!")
 
 
 def main():

@@ -9,6 +9,22 @@
 model="o3-mini"
 fallback_models=["gpt-4o-2024-11-20"]
 #model_weak="gpt-4o-mini-2024-07-18" # optional, a weaker model to use for some easier tasks
+
+# Groq models - uncomment to use Groq as your primary provider
+# model="llama3-8b-8192"  # Groq's Llama 3 8B model
+# model="llama3-70b-8192"  # Groq's Llama 3 70B model (recommended for most tasks)
+# model="llama3.1-8b-instant"  # Groq's Llama 3.1 8B model
+# model="llama3.1-70b-versatile"  # Groq's Llama 3.1 70B model
+# model="llama3.1-405b-reasoner"  # Groq's Llama 3.1 405B model
+# model="mixtral-8x7b-32768"  # Groq's Mixtral 8x7B model
+# model="gemma-7b-it"  # Groq's Gemma 7B model
+# model="gemma2-9b-it"  # Groq's Gemma 2 9B model
+
+# Groq Model Recommendations:
+# - llama3-70b-8192: Best balance of speed and quality for most tasks
+# - llama3.1-70b-versatile: Latest model with improved reasoning
+# - llama3.1-405b-reasoner: Most capable model for complex reasoning tasks
+# - mixtral-8x7b-32768: Good for tasks requiring longer context windows
 # CLI
 git_provider="github"
 publish_output=true
