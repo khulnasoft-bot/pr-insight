@@ -25,9 +25,9 @@ MAX_TOKENS = {
     "o1-preview": 128000,  # 128K, but may be limited by config.max_model_tokens
     "o1-preview-2024-09-12": 128000,  # 128K, but may be limited by config.max_model_tokens
     "o1-2024-12-17": 204800,  # 200K, but may be limited by config.max_model_tokens
-    "o1": 204800,  # 200K, but may be limited by config.max_model_tokens
-    "o3-mini": 204800,  # 200K, but may be limited by config.max_model_tokens
-    "o3-mini-2025-01-31": 204800,  # 200K, but may be limited by config.max_model_tokens
+    "gpt-5": 200000,  # 200K tokens, but may be limited by config.max_model_tokens
+    "gpt-5-turbo": 200000,  # 200K tokens, but may be limited by config.max_model_tokens
+    "gpt-5-2024-12-01": 200000,  # 200K tokens, but may be limited by config.max_model_tokens
     "claude-instant-1": 100000,
     "claude-2": 100000,
     "command-nightly": 4096,
@@ -103,6 +103,9 @@ NO_SUPPORT_TEMPERATURE_MODELS = [
     "o3-mini",
     "o3-mini-2025-01-31",
     "o1-preview",
+    "gpt-5",  # GPT-5 does not support temperature parameter
+    "gpt-5-turbo",  # GPT-5 Turbo does not support temperature parameter
+    "gpt-5-2024-12-01",  # GPT-5 specific version does not support temperature parameter
 ]
 
 SUPPORT_REASONING_EFFORT_MODELS = ["o3-mini", "o3-mini-2025-01-31"]

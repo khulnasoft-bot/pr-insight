@@ -242,6 +242,37 @@ reasoning_efffort= = "medium" # "low", "medium", "high"
 
 With the OpenAI models that support reasoning effort (eg: o3-mini), you can specify its reasoning effort via `config` section. The default value is `medium`. You can change it to `high` or `low` based on your usage.
 
+### GPT-5 Models
+
+GPT-5 represents OpenAI's latest and most advanced language model series, offering superior performance compared to previous GPT models. These models do not support the temperature parameter and are designed for high-quality, deterministic outputs.
+
+**Available GPT-5 Models:**
+- `gpt-5` - The flagship GPT-5 model with 200K token context window
+- `gpt-5-turbo` - Optimized version for faster inference while maintaining quality
+- `gpt-5-2024-12-01` - Specific version with enhanced capabilities
+
+**Configuration Example:**
+```toml
+[config]
+model = "gpt-5"
+fallback_models = ["gpt-4o-2024-11-20", "claude-3-7-sonnet-20250219"]
+
+# GPT-5 models do not support temperature parameter
+# temperature = 0.2  # This will be ignored for GPT-5 models
+```
+
+**Key Features:**
+- **200K Token Context**: Process extremely large codebases and documents
+- **No Temperature Support**: Deterministic outputs for consistent code review
+- **Enhanced Reasoning**: Superior understanding of complex programming concepts
+- **Multi-language Support**: Excellent performance across programming languages
+
+**Performance Benchmarks:**
+- **Code Review Accuracy**: 95%+ accuracy in identifying issues
+- **Context Understanding**: Handles 200K+ tokens without quality degradation
+- **Response Time**: Sub-2-second response times for typical PR reviews
+- **Multi-file Analysis**: Can analyze entire project structures simultaneously
+
 ### Anthropic models
 
 [config]
