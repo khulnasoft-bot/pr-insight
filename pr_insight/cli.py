@@ -365,6 +365,13 @@ class CLI:
         return cli.run(args)
 
 
+def run():
+    """Main entry point for the CLI."""
+    cli = PRInsightCLI()
+    exit_code = cli.run()
+    return exit_code
+
+
 if __name__ == "__main__":
     cli = PRInsightCLI()
     exit_code = cli.run()

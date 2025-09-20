@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import copy
 import hashlib
@@ -5,6 +6,8 @@ import json
 import os
 import re
 import time
+from collections import defaultdict
+from typing import Dict, List, Optional
 
 import jwt
 import requests
@@ -28,6 +31,67 @@ from pr_insight.secret_providers import get_secret_provider
 setup_logger(fmt=LoggingFormat.JSON, level=get_settings().get("CONFIG.LOG_LEVEL", "DEBUG"))
 router = APIRouter()
 secret_provider = get_secret_provider() if get_settings().get("CONFIG.SECRET_PROVIDER") else None
+
+# Rate limiting for Bitbucket webhooks
+rate_limit_store: Dict[str, List[float]] = defaultdict(list)
+
+
+def is_repo_allowed(repo_url: str) -> bool:
+    """Check if a repository is in the allow-list."""
+    allowed_repos = get_settings().get("CONFIG.BITBUCKET_ALLOWED_REPOS", [])
+
+    if not allowed_repos:
+        # If no allow-list is configured, allow all repos
+        return True
+
+    # Normalize repo URL for comparison
+    normalized_url = repo_url.strip().rstrip('/').lower()
+
+    for allowed_repo in allowed_repos:
+        allowed_normalized = allowed_repo.strip().rstrip('/').lower()
+
+        # Check for exact match
+        if normalized_url == allowed_normalized:
+            return True
+
+        # Check for partial match (e.g., just project name)
+        if normalized_url.endswith('/' + allowed_normalized) or \
+           normalized_url.endswith('/' + allowed_normalized.split('/')[-1]):
+            return True
+
+        # Check for organization/project format
+        if f"/{allowed_normalized}" in normalized_url:
+            return True
+
+    get_logger().warning(f"Repository {repo_url} not in allow-list")
+    return False
+
+
+def check_rate_limit(client_ip: str) -> bool:
+    """Check if client IP is within rate limits."""
+    now = time.time()
+    max_per_minute = get_settings().get("CONFIG.BITBUCKET_RATE_LIMIT_PER_MINUTE", 60)
+
+    # Clean old entries (older than 1 minute)
+    rate_limit_store[client_ip] = [
+        ts for ts in rate_limit_store[client_ip]
+        if now - ts < 60
+    ]
+
+    if len(rate_limit_store[client_ip]) >= max_per_minute:
+        get_logger().warning(f"Rate limit exceeded for IP {client_ip}")
+        return False
+
+    # Add current timestamp
+    rate_limit_store[client_ip].append(now)
+    return True
+
+
+def check_concurrent_limit() -> bool:
+    """Check if we're within concurrent webhook limits."""
+    max_concurrent = get_settings().get("CONFIG.BITBUCKET_MAX_CONCURRENT_WEBHOOKS", 10)
+    current_concurrent = len([task for task in asyncio.all_tasks() if "webhook" in str(task)])
+    return current_concurrent < max_concurrent
 
 
 async def get_bearer_token(shared_secret: str, client_key: str):
@@ -168,6 +232,21 @@ def should_process_pr_logic(data) -> bool:
 async def handle_github_webhooks(background_tasks: BackgroundTasks, request: Request):
     app_name = get_settings().get("CONFIG.APP_NAME", "Unknown")
     log_context = {"server_type": "bitbucket_app", "app_name": app_name}
+
+    # Get client IP for rate limiting
+    client_ip = request.client.host if request.client else "unknown"
+    log_context["client_ip"] = client_ip
+
+    # Rate limiting check
+    if not check_rate_limit(client_ip):
+        get_logger().warning(f"Rate limit exceeded for IP {client_ip}, rejecting webhook")
+        return JSONResponse({"error": "Rate limit exceeded"}, status_code=429)
+
+    # Concurrent limit check
+    if not check_concurrent_limit():
+        get_logger().warning(f"Concurrent webhook limit reached, queuing request")
+        # Still process but log the warning
+
     get_logger().debug(request.headers)
     jwt_header = request.headers.get("authorization", None)
     if jwt_header:
@@ -209,6 +288,12 @@ async def handle_github_webhooks(background_tasks: BackgroundTasks, request: Req
                 pr_url = data["data"]["pullrequest"]["links"]["html"]["href"]
                 log_context["api_url"] = pr_url
                 log_context["event"] = "pull_request"
+
+                # Check if repository is in allow-list
+                if not is_repo_allowed(pr_url):
+                    get_logger().warning(f"Repository {pr_url} not in allow-list, ignoring webhook")
+                    return "OK"
+
                 if pr_url:
                     with get_logger().contextualize(**log_context):
                         apply_repo_settings(pr_url)
@@ -222,6 +307,12 @@ async def handle_github_webhooks(background_tasks: BackgroundTasks, request: Req
                 pr_url = data["data"]["pullrequest"]["links"]["html"]["href"]
                 log_context["api_url"] = pr_url
                 log_context["event"] = "comment"
+
+                # Check if repository is in allow-list
+                if not is_repo_allowed(pr_url):
+                    get_logger().warning(f"Repository {pr_url} not in allow-list, ignoring webhook")
+                    return "OK"
+
                 comment_body = data["data"]["comment"]["content"]["raw"]
                 with get_logger().contextualize(**log_context):
                     if (

@@ -37,8 +37,8 @@ class ConfigWizard:
         print("\nThis wizard will help you set up PR-Insight for your development workflow.")
         print("You'll need to provide some basic information to get started.")
 
-        # Git Provider Setup
-        self._setup_git_provider()
+        # Security Setup
+        self._setup_security()
 
         # AI Provider Setup
         self._setup_ai_provider()
@@ -99,6 +99,67 @@ class ConfigWizard:
                     'org_url': org_url,
                     'personal_access_token': token
                 }
+
+    def _setup_security(self):
+        """Setup security configuration."""
+        print("\n🔒 Security Setup")
+        print("-" * 15)
+
+        # Secret Provider Setup
+        print("Secret storage options:")
+        print("  1. Local file storage (recommended for development)")
+        print("  2. Google Cloud Storage (recommended for production)")
+
+        while True:
+            choice = input("\nWhich secret storage provider would you like to use? [1-2] (default: 1): ").strip()
+            if not choice:
+                choice = "1"
+
+            if choice == "1":
+                self.config_data['secret_provider'] = 'local_file'
+                secrets_dir = input("Secrets directory (default: ./secrets): ").strip()
+                if secrets_dir:
+                    self.config_data['secrets_dir'] = secrets_dir
+                break
+            elif choice == "2":
+                self.config_data['secret_provider'] = 'google_cloud_storage'
+                print("Note: You'll need to configure Google Cloud credentials separately.")
+                break
+            else:
+                print("Please enter 1 or 2")
+
+        # Bitbucket Security Setup
+        print("\n🪣 Bitbucket Security Setup")
+        print("-" * 25)
+
+        enable_allowlist = input("Enable repository allow-list for Bitbucket webhooks? [Y/n]: ").strip().lower()
+        if enable_allowlist in ['', 'y', 'yes']:
+            print("\nEnter allowed repositories (one per line, empty line to finish):")
+            print("Examples:")
+            print("  https://bitbucket.org/company/project1")
+            print("  project1")
+            print("  company/project1")
+
+            allowed_repos = []
+            while True:
+                repo = input("> ").strip()
+                if not repo:
+                    break
+                allowed_repos.append(repo)
+
+            if allowed_repos:
+                self.config_data['bitbucket_allowed_repos'] = allowed_repos
+                print(f"Added {len(allowed_repos)} repositories to allow-list")
+
+        # Rate limiting setup
+        rate_limit = input("Max webhooks per minute per IP (default: 60): ").strip()
+        if rate_limit and rate_limit.isdigit():
+            self.config_data['bitbucket_rate_limit_per_minute'] = int(rate_limit)
+
+        # Concurrent webhook limit
+        concurrent_limit = input("Max concurrent webhook processing (default: 10): ").strip()
+        if concurrent_limit and concurrent_limit.isdigit():
+            self.config_data['bitbucket_max_concurrent_webhooks'] = int(concurrent_limit)
 
     def _setup_ai_provider(self):
         """Setup AI provider configuration."""
@@ -248,6 +309,20 @@ class ConfigWizard:
             if self.model_config['fallback_models']:
                 print(f"  fallback_models={self.model_config['fallback_models']}")
             print("\n🦙 Groq models are optimized for speed and are great for fast code review!")
+
+        # Show security configuration summary
+        if 'secret_provider' in self.config_data:
+            print("\n🔐 Security Configuration:")
+            provider = self.config_data['secret_provider']
+            print(f"  Secret provider: {provider}")
+            if 'secrets_dir' in self.config_data:
+                print(f"  Secrets directory: {self.config_data['secrets_dir']}")
+            if 'bitbucket_allowed_repos' in self.config_data:
+                print(f"  Bitbucket allow-list: {len(self.config_data['bitbucket_allowed_repos'])} repositories")
+            if 'bitbucket_rate_limit_per_minute' in self.config_data:
+                print(f"  Rate limit: {self.config_data['bitbucket_rate_limit_per_minute']} webhooks/minute")
+            if 'bitbucket_max_concurrent_webhooks' in self.config_data:
+                print(f"  Concurrent limit: {self.config_data['bitbucket_max_concurrent_webhooks']} simultaneous webhooks")
 
 
 def main():

@@ -20,11 +20,25 @@ fallback_models=["gpt-4o-2024-11-20"]
 # model="gemma-7b-it"  # Groq's Gemma 7B model
 # model="gemma2-9b-it"  # Groq's Gemma 2 9B model
 
-# Groq Model Recommendations:
-# - llama3-70b-8192: Best balance of speed and quality for most tasks
-# - llama3.1-70b-versatile: Latest model with improved reasoning
-# - llama3.1-405b-reasoner: Most capable model for complex reasoning tasks
-# - mixtral-8x7b-32768: Good for tasks requiring longer context windows
+# Bitbucket Security Settings
+# Allow-list of repositories that can trigger webhooks (empty list = allow all)
+bitbucket_allowed_repos = [
+    # "https://bitbucket.org/company/project1",
+    # "https://bitbucket.org/company/project2",
+    # "project1",  # Also accepts just the project name
+    # "company/project1",  # Or organization/project format
+]
+
+# Bitbucket webhook security
+bitbucket_webhook_secret_validation = true  # Enable webhook secret validation
+bitbucket_rate_limit_per_minute = 60  # Max webhooks per minute per IP
+bitbucket_max_concurrent_webhooks = 10  # Max concurrent webhook processing
+
+# Secret Management
+# secret_provider: "local_file" (default), "google_cloud_storage"
+# secrets_dir: "./secrets"  # Directory for local file secret storage (only for local_file provider)
+secret_provider="local_file"
+secrets_dir="./secrets"  # Directory for local file secret storage
 # CLI
 git_provider="github"
 publish_output=true
@@ -54,7 +68,6 @@ allow_dynamic_context=true
 max_extra_lines_before_dynamic_context = 8 # will try to include up to 10 extra lines before the hunk in the patch, until we reach an enclosing function or class
 patch_extra_lines_before = 3 # Number of extra lines (+3 default ones) to include before each hunk in the patch
 patch_extra_lines_after = 1 # Number of extra lines (+3 default ones) to include after each hunk in the patch
-secret_provider=""
 cli_mode=false
 ai_disclaimer_title=""  # Pro feature, title for a collapsible disclaimer to AI outputs
 ai_disclaimer=""  # Pro feature, full text for the AI disclaimer

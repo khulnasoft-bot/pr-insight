@@ -14,5 +14,13 @@ def get_secret_provider():
             return GoogleCloudStorageSecretProvider()
         except Exception as e:
             raise ValueError(f"Failed to initialize google_cloud_storage secret provider {provider_id}") from e
+    elif provider_id == "local_file":
+        try:
+            from pr_insight.secret_providers.local_file_secret_provider import \
+                LocalFileSecretProvider
+
+            return LocalFileSecretProvider()
+        except Exception as e:
+            raise ValueError(f"Failed to initialize local_file secret provider {provider_id}") from e
     else:
-        raise ValueError("Unknown SECRET_PROVIDER")
+        raise ValueError(f"Unknown SECRET_PROVIDER: {provider_id}")
