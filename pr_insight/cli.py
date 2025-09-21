@@ -2,8 +2,8 @@ import argparse
 import asyncio
 import os
 import sys
-from typing import List, Optional
 from pathlib import Path
+from typing import List, Optional
 
 from pr_insight.agent.pr_insight import PRInsight, commands
 from pr_insight.algo.utils import get_version

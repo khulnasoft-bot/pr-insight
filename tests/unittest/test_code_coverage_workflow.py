@@ -9,12 +9,13 @@ Testing Framework: pytest (as identified in requirements)
 """
 
 import unittest
+
 import yaml
 
 
 class TestCodeCoverageWorkflow(unittest.TestCase):
     """Test cases for the Code Coverage GitHub Actions workflow."""
-    
+
     @classmethod
     def setUpClass(cls):
         """Set up test fixtures before running tests."""
@@ -96,13 +97,13 @@ jobs:
     def test_workflow_triggers_are_configured(self):
         """Test that workflow triggers are properly configured."""
         triggers = self.workflow_data['on']
-        
+
         # Should have workflow_dispatch for manual triggering
         self.assertIn('workflow_dispatch', triggers)
-        
+
         # Should have pull_request trigger
         self.assertIn('pull_request', triggers)
-        
+
         # Pull request should target main branch
         pr_config = triggers['pull_request']
         self.assertIn('branches', pr_config)
@@ -125,7 +126,7 @@ jobs:
         """Test that the build-and-test job is properly configured."""
         jobs = self.workflow_data['jobs']
         self.assertIn('build-and-test', jobs)
-        
+
         job = jobs['build-and-test']
         self.assertEqual(job['runs-on'], 'ubuntu-latest')
         self.assertIn('steps', job)
@@ -136,7 +137,7 @@ jobs:
         """Test that the checkout step is properly configured."""
         steps = self.workflow_data['jobs']['build-and-test']['steps']
         checkout_step = next((step for step in steps if step.get('id') == 'checkout'), None)
-        
+
         self.assertIsNotNone(checkout_step, "Checkout step not found")
         self.assertEqual(checkout_step['uses'], 'actions/checkout@v2')
 
@@ -144,7 +145,7 @@ jobs:
         """Test that Docker Buildx setup step is properly configured."""
         steps = self.workflow_data['jobs']['build-and-test']['steps']
         dockerx_step = next((step for step in steps if step.get('id') == 'dockerx'), None)
-        
+
         self.assertIsNotNone(dockerx_step, "Docker Buildx step not found")
         self.assertEqual(dockerx_step['uses'], 'docker/setup-buildx-action@v2')
         self.assertEqual(dockerx_step['name'], 'Setup Docker Buildx')
@@ -153,11 +154,11 @@ jobs:
         """Test that Docker build step is properly configured."""
         steps = self.workflow_data['jobs']['build-and-test']['steps']
         build_step = next((step for step in steps if step.get('id') == 'build'), None)
-        
+
         self.assertIsNotNone(build_step, "Build step not found")
         self.assertEqual(build_step['uses'], 'docker/build-push-action@v2')
         self.assertEqual(build_step['name'], 'Build dev docker')
-        
+
         # Test build step parameters
         build_with = build_step['with']
         expected_params = {
@@ -168,10 +169,10 @@ jobs:
             'tags': 'khulnasoft/pr-insight:test',
             'target': 'test'
         }
-        
+
         for param, expected_value in expected_params.items():
             with self.subTest(param=param):
-                self.assertEqual(build_with[param], expected_value, 
+                self.assertEqual(build_with[param], expected_value,
                                f"Build parameter {param} should be {expected_value}")
 
     def test_docker_build_caching_configuration(self):
@@ -179,7 +180,7 @@ jobs:
         steps = self.workflow_data['jobs']['build-and-test']['steps']
         build_step = next((step for step in steps if step.get('id') == 'build'), None)
         build_with = build_step['with']
-        
+
         self.assertEqual(build_with['cache-from'], 'type=gha,scope=dev')
         self.assertEqual(build_with['cache-to'], 'type=gha,mode=max,scope=dev')
 
@@ -187,11 +188,11 @@ jobs:
         """Test that the code coverage step is properly configured."""
         steps = self.workflow_data['jobs']['build-and-test']['steps']
         code_cov_step = next((step for step in steps if step.get('id') == 'code_cov'), None)
-        
+
         self.assertIsNotNone(code_cov_step, "Code coverage step not found")
         self.assertEqual(code_cov_step['name'], 'Test dev docker')
         self.assertIn('run', code_cov_step)
-        
+
         # Test that the run command contains expected elements
         run_command = code_cov_step['run']
         expected_elements = [
@@ -205,20 +206,20 @@ jobs:
             'coverage.xml',
             'docker rm'
         ]
-        
+
         for element in expected_elements:
             with self.subTest(element=element):
-                self.assertIn(element, run_command, 
+                self.assertIn(element, run_command,
                             f"Coverage command should contain '{element}'")
 
     def test_coverage_validation_step(self):
         """Test that coverage validation step is properly configured."""
         steps = self.workflow_data['jobs']['build-and-test']['steps']
         validation_steps = [step for step in steps if step.get('name') == 'Validate coverage report']
-        
+
         self.assertEqual(len(validation_steps), 1, "Should have exactly one validation step")
         validation_step = validation_steps[0]
-        
+
         self.assertIn('run', validation_step)
         run_command = validation_step['run']
         # Should check for coverage.xml file existence and exit with error if not found
@@ -229,10 +230,10 @@ jobs:
         """Test that Codecov upload step is properly configured."""
         steps = self.workflow_data['jobs']['build-and-test']['steps']
         codecov_steps = [step for step in steps if step.get('name') == 'Upload coverage to Codecov']
-        
+
         self.assertEqual(len(codecov_steps), 1, "Should have exactly one Codecov upload step")
         codecov_step = codecov_steps[0]
-        
+
         self.assertEqual(codecov_step['uses'], 'codecov/codecov-action@v4.6.0')
         self.assertIn('with', codecov_step)
         self.assertIn('token', codecov_step['with'])
@@ -242,7 +243,7 @@ jobs:
         """Test that workflow steps are in a logical execution order."""
         steps = self.workflow_data['jobs']['build-and-test']['steps']
         step_identifiers = []
-        
+
         for step in steps:
             if 'id' in step:
                 step_identifiers.append(step['id'])
@@ -250,31 +251,31 @@ jobs:
                 step_identifiers.append(step['name'])
             else:
                 step_identifiers.append('unnamed_step')
-        
+
         # Expected order of key steps
         expected_sequence = ['checkout', 'dockerx', 'build', 'code_cov']
-        
+
         indices = []
         for expected_step in expected_sequence:
             for i, identifier in enumerate(step_identifiers):
                 if expected_step in str(identifier):
                     indices.append(i)
                     break
-        
+
         # Indices should be in ascending order
-        self.assertEqual(indices, sorted(indices), 
+        self.assertEqual(indices, sorted(indices),
                         "Workflow steps should be in logical order")
 
     def test_workflow_uses_appropriate_action_versions(self):
         """Test workflow uses appropriate action versions."""
         steps = self.workflow_data['jobs']['build-and-test']['steps']
-        
+
         action_versions = {}
         for step in steps:
             if 'uses' in step:
                 action_name, version = step['uses'].split('@')
                 action_versions[action_name] = version
-        
+
         # Test specific versions are being used (not necessarily latest, but reasonable)
         expected_versions = {
             'actions/checkout': 'v2',
@@ -282,7 +283,7 @@ jobs:
             'docker/build-push-action': 'v2',
             'codecov/codecov-action': 'v4.6.0'
         }
-        
+
         for action, expected_version in expected_versions.items():
             if action in action_versions:
                 with self.subTest(action=action):
@@ -292,14 +293,14 @@ jobs:
     def test_workflow_has_proper_error_handling(self):
         """Test that workflow includes proper error handling mechanisms."""
         steps = self.workflow_data['jobs']['build-and-test']['steps']
-        
+
         # Should have validation step that can fail the workflow
         validation_found = any(
-            step.get('name') == 'Validate coverage report' 
+            step.get('name') == 'Validate coverage report'
             for step in steps
         )
         self.assertTrue(validation_found, "Should have coverage validation step")
-        
+
         # Should clean up docker containers
         code_cov_step = next((step for step in steps if step.get('id') == 'code_cov'), None)
         run_command = code_cov_step['run']
@@ -308,7 +309,7 @@ jobs:
     def test_workflow_environment_requirements(self):
         """Test that workflow specifies appropriate environment requirements."""
         job = self.workflow_data['jobs']['build-and-test']
-        
+
         # Should run on ubuntu-latest for Docker support and stability
         self.assertEqual(job['runs-on'], 'ubuntu-latest')
 
@@ -317,19 +318,19 @@ jobs:
         steps = self.workflow_data['jobs']['build-and-test']['steps']
         code_cov_step = next((step for step in steps if step.get('id') == 'code_cov'), None)
         run_command = code_cov_step['run']
-        
+
         # Should include both terminal and XML coverage reports
-        self.assertIn('--cov-report term', run_command, 
+        self.assertIn('--cov-report term', run_command,
                      "Should generate terminal coverage report")
-        self.assertIn('--cov-report xml', run_command, 
+        self.assertIn('--cov-report xml', run_command,
                      "Should generate XML coverage report for Codecov")
-        
+
         # Should target the correct package
-        self.assertIn('--cov=pr_insight', run_command, 
+        self.assertIn('--cov=pr_insight', run_command,
                      "Should measure coverage for pr_insight package")
-        
+
         # Should run tests from the correct directory
-        self.assertIn('tests/unittest', run_command, 
+        self.assertIn('tests/unittest', run_command,
                      "Should run unit tests")
 
     def test_docker_configuration_security(self):
@@ -337,65 +338,65 @@ jobs:
         steps = self.workflow_data['jobs']['build-and-test']['steps']
         build_step = next((step for step in steps if step.get('id') == 'build'), None)
         build_with = build_step['with']
-        
+
         # Should not push to registry in PR builds (security)
-        self.assertFalse(build_with['push'], 
+        self.assertFalse(build_with['push'],
                         "Should not push Docker images in PR builds")
-        
+
         # Should load locally for testing
-        self.assertTrue(build_with['load'], 
+        self.assertTrue(build_with['load'],
                        "Should load Docker image locally for testing")
 
     def test_codecov_token_security(self):
         """Test that Codecov token is properly secured."""
         steps = self.workflow_data['jobs']['build-and-test']['steps']
         codecov_step = next(
-            (step for step in steps 
+            (step for step in steps
              if step.get('name') == 'Upload coverage to Codecov'), None
         )
-        
+
         token = codecov_step['with']['token']
         # Token should use GitHub secrets, not be hardcoded
-        self.assertTrue(token.startswith('${{ secrets.'), 
+        self.assertTrue(token.startswith('${{ secrets.'),
                        "Codecov token should use GitHub secrets")
-        self.assertTrue(token.endswith(' }}'), 
+        self.assertTrue(token.endswith(' }}'),
                        "Codecov token should use proper GitHub secrets syntax")
 
     def test_workflow_step_naming_consistency(self):
         """Test that workflow steps have consistent and descriptive names."""
         steps = self.workflow_data['jobs']['build-and-test']['steps']
-        
+
         # Check that important steps have names
         named_steps = [step for step in steps if 'name' in step]
-        self.assertGreater(len(named_steps), 2, 
+        self.assertGreater(len(named_steps), 2,
                           "Should have descriptive names for key steps")
-        
+
         # Check for consistent naming patterns
         for step in named_steps:
             name = step['name']
             with self.subTest(name=name):
                 # Names should be descriptive and follow patterns
-                self.assertGreater(len(name), 5, 
+                self.assertGreater(len(name), 5,
                                  f"Step name '{name}' should be descriptive")
 
     def test_dockerfile_path_configuration(self):
         """Test that Dockerfile path is correctly configured."""
         steps = self.workflow_data['jobs']['build-and-test']['steps']
         build_step = next((step for step in steps if step.get('id') == 'build'), None)
-        
+
         dockerfile_path = build_step['with']['file']
-        self.assertEqual(dockerfile_path, './docker/Dockerfile', 
+        self.assertEqual(dockerfile_path, './docker/Dockerfile',
                         "Dockerfile path should be correctly specified")
 
     def test_docker_image_tagging_strategy(self):
         """Test that Docker image tagging follows a consistent strategy."""
         steps = self.workflow_data['jobs']['build-and-test']['steps']
         build_step = next((step for step in steps if step.get('id') == 'build'), None)
-        
+
         tags = build_step['with']['tags']
-        self.assertEqual(tags, 'khulnasoft/pr-insight:test', 
+        self.assertEqual(tags, 'khulnasoft/pr-insight:test',
                         "Docker image should be tagged appropriately for testing")
-        
+
         # Tag should indicate this is for testing
         self.assertIn(':test', tags, "Docker tag should indicate test environment")
 
@@ -403,7 +404,7 @@ jobs:
         """Test that workflow includes all necessary steps for code coverage."""
         steps = self.workflow_data['jobs']['build-and-test']['steps']
         step_purposes = []
-        
+
         for step in steps:
             if step.get('id') == 'checkout':
                 step_purposes.append('checkout')
@@ -417,19 +418,19 @@ jobs:
                 step_purposes.append('validate')
             elif step.get('name') == 'Upload coverage to Codecov':
                 step_purposes.append('upload')
-        
-        required_purposes = ['checkout', 'docker_setup', 'build', 
+
+        required_purposes = ['checkout', 'docker_setup', 'build',
                            'test_coverage', 'validate', 'upload']
-        
+
         for purpose in required_purposes:
             with self.subTest(purpose=purpose):
-                self.assertIn(purpose, step_purposes, 
+                self.assertIn(purpose, step_purposes,
                             f"Workflow should include step for {purpose}")
 
 
 class TestWorkflowEdgeCases(unittest.TestCase):
     """Test edge cases and failure scenarios for the workflow."""
-    
+
     def test_invalid_yaml_structure_detection(self):
         """Test detection of invalid YAML structures."""
         invalid_yamls = [
@@ -437,7 +438,7 @@ class TestWorkflowEdgeCases(unittest.TestCase):
             "name: Test\n  invalid_indentation: true",       # Invalid indentation
             "name: Test\njobs:\n  test:\n    runs-on:",      # Missing value
         ]
-        
+
         for invalid_yaml in invalid_yamls:
             with self.subTest(yaml_content=invalid_yaml[:50]):
                 with self.assertRaises(yaml.YAMLError):
@@ -451,14 +452,14 @@ class TestWorkflowEdgeCases(unittest.TestCase):
             'jobs': {'test': {'runs-on': 'ubuntu-latest', 'steps': []}}
         }
         self.assertNotIn('name', missing_name)
-        
+
         # Test missing 'on' field
         missing_on = {
             'name': 'Test',
             'jobs': {'test': {'runs-on': 'ubuntu-latest', 'steps': []}}
         }
         self.assertNotIn('on', missing_on)
-        
+
         # Test missing 'jobs' field
         missing_jobs = {
             'name': 'Test',
@@ -479,10 +480,10 @@ jobs:
         run: |
           docker run --name test_container khulnasoft/pr-insight:test pytest tests/unittest --cov=pr_insight
         """)
-        
+
         step = workflow_data['jobs']['test']['steps'][0]
         run_command = step['run']
-        
+
         # Command should not contain suspicious patterns
         suspicious_patterns = [';', '&&', '||', '`', '$()']
         for pattern in suspicious_patterns:
