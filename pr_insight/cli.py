@@ -2,7 +2,7 @@ import argparse
 import asyncio
 import os
 import sys
-from typing import Optional, List
+from typing import List, Optional
 from pathlib import Path
 
 from pr_insight.agent.pr_insight import PRInsight, commands
