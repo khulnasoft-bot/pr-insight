@@ -1,0 +1,30 @@
+name: pre-commit auto-fix
+
+on:
+  workflow_dispatch:
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: true
+      - name: Set up Python
+        uses: actions/setup-python@v5
+      - name: Install pre-commit
+        run: pip install pre-commit
+      - name: Run pre-commit auto-fix
+        run: pre-commit run --all-files --hook-stage manual --show-diff-on-failure --color always --fix
+      - name: Commit and push changes if any fixes applied
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          if [[ `git status --porcelain` ]]; then
+            git add .
+            git commit -m "chore: auto-fix with pre-commit"
+            git push
+          else
+            echo "No changes to commit."
+          fi
