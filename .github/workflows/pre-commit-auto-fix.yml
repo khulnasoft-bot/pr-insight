@@ -16,7 +16,7 @@ jobs:
       - name: Install pre-commit
         run: pip install pre-commit
       - name: Run pre-commit auto-fix
-        run: pre-commit run --all-files --hook-stage manual --show-diff-on-failure --color always
+        run: pre-commit run --all-files --hook-stage manual --show-diff-on-failure --color always || true
       - name: Commit and push changes if any fixes applied
         run: |
           git config --global user.name "GitHub Actions"
