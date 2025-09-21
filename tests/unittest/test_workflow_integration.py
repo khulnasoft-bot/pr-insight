@@ -8,21 +8,22 @@ Testing Framework: pytest/unittest
 """
 
 import unittest
-import yaml
 from pathlib import Path
+
+import yaml
 
 
 class TestWorkflowIntegration(unittest.TestCase):
     """Integration tests for workflow files."""
-    
+
     def setUp(self):
         """Set up test fixtures."""
         self.workflow_dir = Path('.github/workflows')
         self.workflow_files = []
-        
+
         if self.workflow_dir.exists():
             self.workflow_files = (
-                list(self.workflow_dir.glob('*.yml')) + 
+                list(self.workflow_dir.glob('*.yml')) +
                 list(self.workflow_dir.glob('*.yaml'))
             )
 
@@ -30,7 +31,7 @@ class TestWorkflowIntegration(unittest.TestCase):
         """Test that all workflow files contain valid YAML."""
         if not self.workflow_files:
             self.skipTest("No workflow files found in .github/workflows")
-        
+
         for workflow_file in self.workflow_files:
             with self.subTest(file=str(workflow_file)):
                 with open(workflow_file, 'r') as f:
@@ -76,12 +77,12 @@ class TestWorkflowIntegration(unittest.TestCase):
         """Test that all job steps follow valid GitHub Actions structure."""
         if not self.workflow_files:
             self.skipTest("No workflow files found")
-        
+
         for workflow_file in self.workflow_files:
             with self.subTest(file=str(workflow_file)):
                 with open(workflow_file, 'r') as f:
                     workflow_data = yaml.safe_load(f)
-                
+
                 jobs = workflow_data.get('jobs', {})
                 for job_name, job_config in jobs.items():
                     with self.subTest(job=job_name):
@@ -90,11 +91,11 @@ class TestWorkflowIntegration(unittest.TestCase):
                                     f"Job '{job_name}' missing 'runs-on' in {workflow_file}")
                         self.assertIn('steps', job_config,
                                     f"Job '{job_name}' missing 'steps' in {workflow_file}")
-                        
+
                         steps = job_config['steps']
                         self.assertIsInstance(steps, list,
                                             f"Steps should be a list in job '{job_name}' in {workflow_file}")
-                        
+
                         # Each step should have either 'uses' or 'run'
                         for i, step in enumerate(steps):
                             has_uses = 'uses' in step
@@ -106,17 +107,17 @@ class TestWorkflowIntegration(unittest.TestCase):
         """Test that workflows follow consistent naming conventions."""
         if not self.workflow_files:
             self.skipTest("No workflow files found")
-        
+
         for workflow_file in self.workflow_files:
             with self.subTest(file=str(workflow_file)):
                 with open(workflow_file, 'r') as f:
                     workflow_data = yaml.safe_load(f)
-                
+
                 name = workflow_data.get('name', '')
                 # Name should be descriptive and not empty
-                self.assertGreater(len(name), 0, 
+                self.assertGreater(len(name), 0,
                                  f"Workflow name should not be empty in {workflow_file}")
-                self.assertGreater(len(name), 3, 
+                self.assertGreater(len(name), 3,
                                  f"Workflow name should be descriptive in {workflow_file}")
 
     def test_no_hardcoded_secrets(self):

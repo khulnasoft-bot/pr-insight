@@ -2,8 +2,8 @@
 """
 Simple test script to verify CLI structure without dependencies
 """
-import sys
 import os
+import sys
 
 # Add the project root to sys.path
 sys.path.insert(0, '/Users/dev/pr-insight')
@@ -14,7 +14,7 @@ def test_cli_structure():
 
     # Test basic imports
     try:
-        from pr_insight.cli import PRInsightCLI, CLIFormatter
+        from pr_insight.cli import CLIFormatter, PRInsightCLI
         print("✅ CLI classes imported successfully")
     except ImportError as e:
         print(f"❌ Failed to import CLI classes: {e}")
