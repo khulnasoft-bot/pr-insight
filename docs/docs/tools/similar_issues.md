@@ -24,6 +24,7 @@ Choose from the following Vector Databases:
 
 1. LanceDB
 2. Pinecone
+3. **Qdrant** *(New!)*
 
 #### Pinecone Configuration
 To use Pinecone with the `similar issue` tool, add these credentials to `.secrets.toml` (or set as environment variables):
@@ -34,6 +35,53 @@ api_key = "..."
 environment = "..."
 ```
 These parameters can be obtained by registering to [Pinecone](https://app.pinecone.io/?sessionType=signup/).
+
+#### Qdrant Configuration
+To use Qdrant with the `similar issue` tool, add these credentials to `.secrets.toml` (or set as environment variables):
+
+```
+[qdrant]
+url = "http://localhost:6333"  # Your Qdrant server URL
+# api_key = "your-api-key"  # Optional, for Qdrant Cloud
+```
+
+**Installation:**
+```bash
+pip install qdrant-client
+```
+
+**Qdrant Setup Options:**
+
+1. **Local Installation:**
+   ```bash
+   docker run -p 6333:6333 qdrant/qdrant
+   ```
+
+2. **Qdrant Cloud:**
+   - Sign up at [Qdrant Cloud](https://cloud.qdrant.io/)
+   - Create a new cluster
+   - Use the provided connection URL and API key
+
+3. **Self-hosted:**
+   - Install Qdrant following the [official documentation](https://qdrant.tech/documentation/install/)
+   - Configure the server URL in your configuration
+
+**Performance Benefits:**
+- **High Performance**: Optimized for vector similarity search
+- **Flexible Filtering**: Advanced filtering capabilities for repository-specific searches
+- **Scalable**: Handles large collections efficiently
+- **RESTful API**: Easy integration with existing infrastructure
+
+**Configuration Example:**
+```toml
+[pr_similar_issue]
+vectordb = "qdrant"
+max_issues_to_scan = 500
+
+[qdrant]
+url = "https://your-cluster.cloud.qdrant.io"
+api_key = "your-qdrant-api-key"
+```
 
 
 ## How to use

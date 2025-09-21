@@ -242,38 +242,124 @@ reasoning_efffort= = "medium" # "low", "medium", "high"
 
 With the OpenAI models that support reasoning effort (eg: o3-mini), you can specify its reasoning effort via `config` section. The default value is `medium`. You can change it to `high` or `low` based on your usage.
 
-### GPT-5 Models
+### OpenAI Models (Latest)
 
-GPT-5 represents OpenAI's latest and most advanced language model series, offering superior performance compared to previous GPT models. These models do not support the temperature parameter and are designed for high-quality, deterministic outputs.
+#### O1 and O3 Series (Reasoning Models)
+OpenAI's latest reasoning models provide enhanced code analysis capabilities:
 
-**Available GPT-5 Models:**
-- `gpt-5` - The flagship GPT-5 model with 200K token context window
-- `gpt-5-turbo` - Optimized version for faster inference while maintaining quality
-- `gpt-5-2024-12-01` - Specific version with enhanced capabilities
+**O1 Models:**
+- `o1` - Latest reasoning model with 200K token context
+- `o1-2024-12-17` - Specific version with enhanced reasoning
+- `o1-preview` - Preview version for testing
+- `o1-mini` - Faster, cost-effective reasoning model
 
-**Configuration Example:**
+**O3 Models:**
+- `o3-mini` - Latest mini reasoning model (supports reasoning effort)
+- `o3-mini-2025-01-31` - Specific version with enhanced capabilities
+
+**Configuration for Reasoning Models:**
 ```toml
 [config]
-model = "gpt-5"
+model = "o1-2024-12-17"
 fallback_models = ["gpt-4o-2024-11-20", "claude-3-7-sonnet-20250219"]
+reasoning_effort = "high"  # For o3-mini models: "low", "medium", "high"
 
-# GPT-5 models do not support temperature parameter
-# temperature = 0.2  # This will be ignored for GPT-5 models
+# Reasoning models typically don't support temperature
+# custom_reasoning_model = true  # Set for models without chat templates
 ```
 
-**Key Features:**
-- **200K Token Context**: Process extremely large codebases and documents
-- **No Temperature Support**: Deterministic outputs for consistent code review
-- **Enhanced Reasoning**: Superior understanding of complex programming concepts
-- **Multi-language Support**: Excellent performance across programming languages
+#### GPT-4o Series (Latest)
+- `gpt-4o-2024-11-20` - Latest GPT-4o with enhanced capabilities
+- `gpt-4o-2024-08-06` - Previous version, still supported
+- `gpt-4o-mini-2024-07-18` - Fast and cost-effective option
 
-**Performance Benchmarks:**
-- **Code Review Accuracy**: 95%+ accuracy in identifying issues
-- **Context Understanding**: Handles 200K+ tokens without quality degradation
-- **Response Time**: Sub-2-second response times for typical PR reviews
-- **Multi-file Analysis**: Can analyze entire project structures simultaneously
+#### GPT-5 Models (Preview)
+Advanced models with 200K token context:
+- `gpt-5` - Flagship GPT-5 model
+- `gpt-5-turbo` - Optimized for speed
+- `gpt-5-2024-12-01` - Latest version
 
-### Anthropic models
+### Anthropic Models (Latest)
+
+#### Claude 3.7 Sonnet
+- `anthropic/claude-3-7-sonnet-20250219` - Latest Sonnet model with 200K context
+- `claude-3-7-sonnet-20250219` - Alias for the above
+
+**Extended Thinking Support:**
+```toml
+[config]
+enable_claude_extended_thinking = true
+extended_thinking_budget_tokens = 2048
+extended_thinking_max_output_tokens = 4096
+```
+
+#### Claude 3.5 Sonnet (Updated)
+- `anthropic/claude-3-5-sonnet-20241022` - Latest Sonnet 3.5
+- `anthropic/claude-3-5-sonnet-20240620` - Previous version, still supported
+
+### Google Models (Latest)
+
+#### Gemini 2.0
+- `gemini/gemini-2.0-flash` - Latest Gemini model
+- `vertex_ai/gemini-2.0-flash` - Vertex AI version
+
+#### Gemini 1.5 Pro
+- `gemini/gemini-1.5-pro` - High-performance model
+- `vertex_ai/gemini-1.5-pro` - Vertex AI version
+
+### DeepSeek Models
+
+#### DeepSeek R1 (Reasoning)
+- `deepseek/deepseek-reasoner` - Reasoning model (no temperature support)
+- `deepseek/deepseek-chat` - Standard chat model
+
+**DeepInfra Versions:**
+- `deepinfra/deepseek-ai/DeepSeek-R1` - Latest R1 model
+- `deepinfra/deepseek-ai/DeepSeek-R1-Distill-Qwen-32B` - Distilled version
+- `deepinfra/deepseek-ai/DeepSeek-R1-Distill-Llama-70B` - Llama-distilled version
+
+### Groq Models (Updated)
+
+#### Llama 3.3
+- `groq/llama-3.3-70b-versatile` - Latest Llama 3.3 model with 128K context
+- `groq/llama3-70b-8192` - Previous generation, still supported
+
+#### Mixtral
+- `groq/mixtral-8x7b-32768` - Mixture of experts model
+
+### Vertex AI Models (Latest)
+
+#### Claude 3.7 Sonnet
+- `vertex_ai/claude-3-7-sonnet@20250219` - Latest on Vertex AI
+
+#### Gemini Models
+- `vertex_ai/gemini-2.0-flash` - Latest Gemini
+- `vertex_ai/gemini-1.5-pro` - High-performance option
+- `vertex_ai/gemini-1.5-flash` - Fast option
+
+### Amazon Bedrock Models
+
+#### Latest Claude Models
+- `bedrock/anthropic.claude-3-7-sonnet-20250219-v1:0` - Latest on Bedrock
+- `bedrock/anthropic.claude-3-5-sonnet-20241022-v2:0` - Updated Sonnet 3.5
+
+### Model-Specific Features
+
+#### Models Without Temperature Support
+These models use deterministic outputs:
+- All O1/O3 series models
+- GPT-5 series models
+- DeepSeek Reasoner models
+
+#### Models with Extended Context
+200K+ token context:
+- GPT-5 series (200K)
+- Claude 3.7 Sonnet (200K)
+- Gemini 1.5 Pro (1M+)
+- Gemini 2.0 Flash (1M+)
+
+#### Models with Reasoning Effort
+- `o3-mini` and variants support reasoning effort settings
 
 [config]
 enable_claude_extended_thinking = false # Set to true to enable extended thinking feature

@@ -104,6 +104,14 @@ class PRInsightCLI:
         ask_parser.add_argument('question', nargs='*', help='Question to ask about the PR')
         ask_parser.add_argument('--line-numbers', help='Specific line numbers to ask about')
 
+        # Similar issue command
+        similar_issue_parser = pr_subparsers.add_parser(
+            'similar_issue', help='Find similar issues to the given PR/issue',
+            formatter_class=CLIFormatter
+        )
+        similar_issue_parser.add_argument('--pr-url', help='Pull request URL')
+        similar_issue_parser.add_argument('--issue-url', required=True, help='Issue URL (required)')
+
         # Configuration Commands
         config_parser = subparsers.add_parser(
             'config', help='Configuration management',

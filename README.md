@@ -176,9 +176,48 @@ Note that when you set your own PR-Insight or use KhulnaSoft hosted PR-Insight, 
 [//]: # ()
 [//]: # (**BitBucket specific methods**)
 
-[//]: # (- [Run as a Bitbucket Pipeline]&#40;https://khulnasoft.github.io/pr-insight/installation/bitbucket/&#41;)
+## Web Interface
 
-## PR-Insight Pro 💎
+PR-Insight now includes a modern web interface built with Next.js and hosted on Vercel. The web interface provides:
+
+- **Dashboard**: Overview of PR analysis activity and performance metrics
+- **Tool Interface**: User-friendly interface for all PR analysis tools
+- **Real-time Updates**: Live status tracking for analysis jobs
+- **Responsive Design**: Optimized for desktop and mobile devices
+
+### Running the Web Interface Locally
+
+1. Navigate to the web directory:
+   ```bash
+   cd web
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Start the development server:
+   ```bash
+   npm run dev
+   ```
+
+4. Open [http://localhost:3000](http://localhost:3000) in your browser
+
+### Deployment to Vercel
+
+The web interface is automatically deployed to Vercel when changes are pushed to the main branch. The deployment process:
+
+1. Builds the Next.js application
+2. Configures API proxy to the FastAPI backend
+3. Deploys to Vercel's global CDN
+4. Sets up SSL certificates automatically
+
+### Configuration
+
+The web interface connects to the FastAPI backend through the `/api` proxy route. Update the `NEXT_PUBLIC_API_URL` environment variable in Vercel to point to your deployed backend instance.
+
+---
 [PR-Insight Pro](https://www.khulnasoft.com/pricing/) is a hosted version of PR-Insight, provided by KhulnaSoft. It is available for a monthly fee, and provides the following benefits:
 1. **Fully managed** - We take care of everything for you - hosting, models, regular updates, and more. Installation is as simple as signing up and adding the PR-Insight app to your GitHub\GitLab\BitBucket repo.
 2. **Improved privacy** - No data will be stored or used to train models. PR-Insight Pro will employ zero data retention, and will use an OpenAI account with zero data retention.

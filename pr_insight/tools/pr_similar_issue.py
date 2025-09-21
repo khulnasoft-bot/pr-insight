@@ -173,9 +173,92 @@ class PRSimilarIssue:
                     else:
                         break
 
+                else:
+                    get_logger().info("No new issues to update")
+
+        elif get_settings().pr_similar_issue.vectordb == "qdrant":
+            try:
+                from qdrant_client import QdrantClient
+                from qdrant_client.models import Distance, VectorParams, PointStruct
+            except ImportError:
+                raise Exception("Please install qdrant-client to use qdrant as vectordb")
+
+            # Get Qdrant configuration
+            qdrant_config = get_settings().qdrant
+            self.qdrant_client = QdrantClient(
+                url=qdrant_config.url,
+                api_key=qdrant_config.get("api_key", None)
+            )
+            self.collection_name = self.index_name
+
+            run_from_scratch = False
+            if run_from_scratch:  # for debugging
+                try:
+                    self.qdrant_client.delete_collection(self.collection_name)
+                    get_logger().info("Removed collection")
+                except Exception as e:
+                    get_logger().debug(f"Collection deletion failed or didn't exist: {e}")
+
+            upsert = True
+            try:
+                self.qdrant_client.get_collection(self.collection_name)
+                if get_settings().pr_similar_issue.force_update_dataset:
+                    upsert = True
+                else:
+                    # Check if example issue exists
+                    try:
+                        result = self.qdrant_client.search(
+                            collection_name=self.collection_name,
+                            query_vector=[0.0] * 1536,  # Dummy vector for existence check
+                            limit=1,
+                            query_filter={"must": [{"key": "id", "match": {"value": f"example_issue_{repo_name_for_index}"}}]}
+                        )
+                        if result:
+                            upsert = False
+                    except Exception:
+                        upsert = True
+            except Exception:
+                run_from_scratch = True
+                upsert = False
+
+            if run_from_scratch or upsert:  # indexing the entire repo
+                get_logger().info("Indexing the entire repo...")
+
+                get_logger().info("Getting issues...")
+                issues = list(repo_obj.get_issues(state="all"))
+                get_logger().info("Done")
+
+                self._update_qdrant_with_issues(issues, repo_name_for_index, upsert=upsert)
+            else:  # update collection if needed
+                issues_to_update = []
+                issues_paginated_list = repo_obj.get_issues(state="all")
+                counter = 1
+                for issue in issues_paginated_list:
+                    if issue.pull_request:
+                        continue
+                    issue_str, comments, number = self._process_issue(issue)
+                    issue_key = f"issue_{number}"
+                    issue_id = issue_key + "." + "issue"
+
+                    try:
+                        result = self.qdrant_client.search(
+                            collection_name=self.collection_name,
+                            query_vector=[0.0] * 1536,
+                            limit=1,
+                            query_filter={"must": [{"key": "id", "match": {"value": issue_id}}]}
+                        )
+                        if not result:
+                            counter += 1
+                            issues_to_update.append(issue)
+                        else:
+                            break
+                    except Exception:
+                        counter += 1
+                        issues_to_update.append(issue)
+
                 if issues_to_update:
-                    get_logger().info(f"Updating index with {counter} new issues...")
-                    self._update_table_with_issues(issues_to_update, repo_name_for_index, ingest=True)
+                    get_logger().info(f"Updating collection with {counter} new issues...")
+                    self._update_qdrant_with_issues(issues_to_update, repo_name_for_index, upsert=True)
                 else:
                     get_logger().info("No new issues to update")
 
@@ -251,6 +334,41 @@ class PRSimilarIssue:
                 else:
                     relevant_comment_number_list.append(-1)
                 score_list.append(str("{:.2f}".format(1 - r["_distance"])))
+            get_logger().info("Done")
+
+        elif get_settings().pr_similar_issue.vectordb == "qdrant":
+            # Query Qdrant for similar issues
+            try:
+                result = self.qdrant_client.search(
+                    collection_name=self.collection_name,
+                    query_vector=embeds[0],
+                    limit=5,
+                    query_filter={"must": [{"key": "repo", "match": {"value": self.repo_name_for_index}}]}
+                )
+
+                for point in result:
+                    # skip example issue
+                    if "example_issue_" in point.payload["id"]:
+                        continue
+
+                    try:
+                        issue_number = int(point.payload["id"].split(".")[0].split("_")[-1])
+                    except:
+                        get_logger().debug(f"Failed to parse issue number from {point.payload['id']}")
+                        continue
+
+                    if original_issue_number == issue_number:
+                        continue
+                    if issue_number not in relevant_issues_number_list:
+                        relevant_issues_number_list.append(issue_number)
+                    if "comment" in point.payload["id"]:
+                        relevant_comment_number_list.append(int(point.payload["id"].split(".")[1].split("_")[-1]))
+                    else:
+                        relevant_comment_number_list.append(-1)
+                    score_list.append(str("{:.2f}".format(point.score)))
+            except Exception as e:
+                get_logger().error(f"Failed to query Qdrant: {e}")
+                return relevant_issues_number_list, relevant_comment_number_list, score_list
             get_logger().info("Done")
 
         get_logger().info("Publishing response...")
@@ -466,6 +584,123 @@ class PRSimilarIssue:
             else:
                 get_logger().info(f"Table {self.index_name} doesn't exists!")
             time.sleep(5)
+        get_logger().info("Done")
+
+
+    def _update_qdrant_with_issues(self, issues_list, repo_name_for_index, upsert=False):
+        """Update Qdrant collection with issues data."""
+        get_logger().info("Processing issues...")
+
+        # Create collection if it doesn't exist
+        try:
+            self.qdrant_client.get_collection(self.collection_name)
+        except Exception:
+            get_logger().info("Creating Qdrant collection...")
+            from qdrant_client.models import Distance, VectorParams
+            self.qdrant_client.create_collection(
+                collection_name=self.collection_name,
+                vectors_config=VectorParams(size=1536, distance=Distance.COSINE)
+            )
+
+        corpus = Corpus()
+        example_issue_record = Record(
+            id=f"example_issue_{repo_name_for_index}", text="example_issue", metadata=Metadata(repo=repo_name_for_index)
+        )
+        corpus.append(example_issue_record)
+
+        counter = 0
+        for issue in issues_list:
+            if issue.pull_request:
+                continue
+
+            counter += 1
+            if counter % 100 == 0:
+                get_logger().info(f"Scanned {counter} issues")
+            if counter >= self.max_issues_to_scan:
+                get_logger().info(f"Scanned {self.max_issues_to_scan} issues, stopping")
+                break
+
+            issue_str, comments, number = self._process_issue(issue)
+            issue_key = f"issue_{number}"
+            username = issue.user.login
+            created_at = str(issue.created_at)
+            if len(issue_str) < 8000 or self.token_handler.count_tokens(issue_str) < get_max_tokens(
+                MODEL
+            ):  # fast reject first
+                issue_record = Record(
+                    id=issue_key + "." + "issue",
+                    text=issue_str,
+                    metadata=Metadata(
+                        repo=repo_name_for_index, username=username, created_at=created_at, level=IssueLevel.ISSUE
+                    ),
+                )
+                corpus.append(issue_record)
+                if comments:
+                    for j, comment in enumerate(comments):
+                        comment_body = comment.body
+                        num_words_comment = len(comment_body.split())
+                        if num_words_comment < 10 or not isinstance(comment_body, str):
+                            continue
+
+                        if (
+                            len(comment_body) < 8000
+                            or self.token_handler.count_tokens(comment_body) < MAX_TOKENS[MODEL]
+                        ):
+                            comment_record = Record(
+                                id=issue_key + ".comment_" + str(j + 1),
+                                text=comment_body,
+                                metadata=Metadata(
+                                    repo=repo_name_for_index,
+                                    username=username,  # use issue username for all comments
+                                    created_at=created_at,
+                                    level=IssueLevel.COMMENT,
+                                ),
+                            )
+                            corpus.append(comment_record)
+        df = pd.DataFrame(corpus.dict()["documents"])
+        get_logger().info("Done")
+
+        get_logger().info("Embedding...")
+        openai.api_key = get_settings().openai.key
+        list_to_encode = list(df["text"].values)
+        try:
+            res = openai.Embedding.create(input=list_to_encode, engine=MODEL)
+            embeds = [record["embedding"] for record in res["data"]]
+        except:
+            embeds = []
+            get_logger().error("Failed to embed entire list, embedding one by one...")
+            for i, text in enumerate(list_to_encode):
+                try:
+                    res = openai.Embedding.create(input=[text], engine=MODEL)
+                    embeds.append(res["data"][0]["embedding"])
+                except:
+                    embeds.append([0] * 1536)
+        get_logger().info("Done")
+
+        # Prepare points for Qdrant
+        from qdrant_client.models import PointStruct
+        points = []
+        for i, row in df.iterrows():
+            points.append(PointStruct(
+                id=i,
+                vector=embeds[i],
+                payload={
+                    "id": row["id"],
+                    "text": row["text"],
+                    "repo": row["metadata"]["repo"],
+                    "username": row["metadata"]["username"],
+                    "created_at": row["metadata"]["created_at"],
+                    "level": row["metadata"]["level"]
+                }
+            ))
+
+        # Upsert points to Qdrant
+        if points:
+            self.qdrant_client.upsert(
+                collection_name=self.collection_name,
+                points=points
+            )
+            time.sleep(5)  # wait for Qdrant to finalize upserting before querying
         get_logger().info("Done")
 
 

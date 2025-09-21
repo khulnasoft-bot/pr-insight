@@ -23,9 +23,9 @@ class TestCodeCoverageWorkflow(unittest.TestCase):
 
 on:
   workflow_dispatch:
-  # push:
-  #   branches:
-  #     - main
+  push:
+    branches:
+      - main
   pull_request:
     branches:
       - main
@@ -109,12 +109,17 @@ jobs:
         self.assertIn('main', pr_config['branches'])
 
     def test_workflow_does_not_trigger_on_every_push(self):
-        """Test that workflow doesn't trigger on every push (performance consideration)."""
+        """Test that workflow triggers are properly configured for performance."""
         triggers = self.workflow_data['on']
-        
-        # Push should not be enabled (or should be commented out) to avoid excessive runs
-        self.assertNotIn('push', triggers, 
-                        "Push trigger should be disabled to avoid excessive workflow runs")
+
+        # Push should be enabled but only on main branch (not all branches)
+        self.assertIn('push', triggers, "Push trigger should be enabled")
+
+        # Should trigger on main branch only
+        push_config = triggers['push']
+        self.assertIn('branches', push_config)
+        self.assertIn('main', push_config['branches'])
+        self.assertEqual(len(push_config['branches']), 1, "Should only trigger on main branch")
 
     def test_job_configuration(self):
         """Test that the build-and-test job is properly configured."""

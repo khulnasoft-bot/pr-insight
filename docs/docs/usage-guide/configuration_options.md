@@ -70,27 +70,148 @@ For example, in the GitHub organization `Khulnasoft`:
 
 - The repo [`https://github.com/Khulnasoft/pr-insight`](https://github.com/Khulnasoft/pr-insight/blob/main/.pr_insight.toml) inherits the global configuration file from `pr-insight-settings`.
 
-### Bitbucket Organization level configuration file 💎
-`Relevant platforms: Bitbucket Data Center`
+## Repository Metadata Configuration 💎
 
-In Bitbucket Data Center, there are two levels where you can define a global configuration file:
+Repository metadata configuration allows you to provide enhanced context awareness for AI models by specifying repository-specific information such as technology stack, maturity level, and custom context.
 
-* Project-level global configuration:
+### Configuration Structure
 
-Create a repository named `pr-insight-settings` within a specific project. The configuration file in this repository will apply to all repositories under the same project.
+Add the `[repository_metadata]` section to your configuration file:
 
-* Organization-level global configuration:
+```toml
+[repository_metadata]
+enabled = true
+repository_type = "application"
+technology_stack = "python,fastapi,postgresql,docker"
+maturity_level = "development"
+complexity_level = "enterprise"
+custom_context = "Financial transaction processing application"
 
-Create a dedicated project to hold a global configuration file that affects all repositories across all projects in your organization.
+best_practices_file = "docs/best-practices.md"
+guidelines_file = "CONTRIBUTING.md"
 
-**Setting up organization-level global configuration:**
+context_enhancements = [
+    "Consider security implications for financial transactions",
+    "Follow microservices architecture patterns",
+    "Ensure database transaction integrity"
+]
+```
 
-1.	Create a new project with both the name and key: PR_INSIGHT_SETTINGS.
-2.	Inside the PR_INSIGHT_SETTINGS project, create a repository named pr-insight-settings.
-3.	In this repository, add a `.pr_insight.toml` configuration file—structured similarly to the global configuration file described above.
-4.	Optionally, you can add organizational-level [global best practices file](https://pr-insight-docs.khulnasoft.com/usage-guide/configuration_options/#global-configuration-file).
+### Configuration Options
 
-Repositories across your entire Bitbucket organization will inherit the configuration from this file.
+#### Basic Settings
 
-!!! note "Note"
-    If both organization-level and project-level global settings are defined, the project-level settings will take precedence over the organization-level configuration. Additionally, parameters from a repository’s local .pr_insight.toml file will always override both global settings.
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `enabled` | boolean | `true` | Enable repository metadata injection |
+| `repository_type` | string | `"other"` | Repository classification (see options below) |
+| `technology_stack` | string | `""` | Comma-separated technology list |
+| `maturity_level` | string | `"development"` | Repository maturity (see options below) |
+| `complexity_level` | string | `"moderate"` | Project complexity (see options below) |
+| `custom_context` | string | `""` | Domain-specific context description |
+
+#### Repository Type Options
+- `"application"` - Production applications and services
+- `"library"` - Reusable component libraries
+- `"framework"` - Development frameworks and tools
+- `"tool"` - Development and build tools
+- `"documentation"` - Documentation repositories
+- `"config"` - Configuration management
+- `"other"` - Other types of repositories
+
+#### Maturity Level Options
+- `"experimental"` - Early stage, unstable
+- `"development"` - Active development
+- `"stable"` - Production ready, stable
+- `"mature"` - Well-established, widely used
+- `"legacy"` - Maintenance mode, deprecated features
+
+#### Complexity Level Options
+- `"simple"` - Small, straightforward projects
+- `"moderate"` - Medium complexity with some advanced features
+- `"complex"` - Large, complex applications
+- `"enterprise"` - Enterprise-scale applications with complex requirements
+
+#### Advanced Settings
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `auto_discover_context` | boolean | `true` | Enable automatic context discovery |
+| `max_context_files` | integer | `50` | Maximum files to analyze for context |
+| `best_practices_file` | string | `""` | Path to best practices file |
+| `guidelines_file` | string | `""` | Path to guidelines file |
+| `context_enhancements` | array | `[]` | Custom prompt enhancements |
+
+### Configuration Examples
+
+#### E-commerce Application
+```toml
+[repository_metadata]
+repository_type = "application"
+technology_stack = "nodejs,react,postgresql,redis,docker"
+maturity_level = "stable"
+complexity_level = "enterprise"
+custom_context = "E-commerce platform with payment processing and inventory management"
+
+context_enhancements = [
+    "Consider payment security implications",
+    "Ensure inventory consistency across services",
+    "Follow e-commerce UX patterns",
+    "Maintain shopping cart state integrity"
+]
+```
+
+#### Machine Learning Library
+```toml
+[repository_metadata]
+repository_type = "library"
+technology_stack = "python,tensorflow,pytorch,scikit-learn"
+maturity_level = "development"
+complexity_level = "complex"
+custom_context = "Deep learning library for computer vision applications"
+
+context_enhancements = [
+    "Follow machine learning best practices",
+    "Consider model performance optimization",
+    "Ensure proper data handling and validation",
+    "Maintain backward compatibility for API changes"
+]
+```
+
+#### Microservices Framework
+```toml
+[repository_metadata]
+repository_type = "framework"
+technology_stack = "go,kubernetes,grpc,protobuf,istio"
+maturity_level = "mature"
+complexity_level = "enterprise"
+custom_context = "Microservices framework for cloud-native applications"
+
+best_practices_file = "docs/framework-best-practices.md"
+guidelines_file = "CONTRIBUTING.md"
+
+context_enhancements = [
+    "Follow microservices architecture principles",
+    "Ensure service mesh compatibility",
+    "Consider distributed system challenges",
+    "Maintain API contract consistency"
+]
+```
+
+### Benefits
+
+1. **Enhanced Context Awareness**: AI models receive repository-specific context
+2. **Improved Accuracy**: Better understanding of project patterns and conventions
+3. **Consistency**: Standardized approach across different repository types
+4. **Domain Expertise**: Custom context for specialized domains
+5. **Best Practices Integration**: Automatic incorporation of repository guidelines
+
+### Configuration Precedence
+
+Repository metadata follows the standard configuration precedence:
+
+1. **Repository-specific** settings (`.pr_insight.toml` in repo)
+2. **Organization-level** settings (from `pr-insight-settings` repo)
+3. **Default values**
+
+This ensures flexibility while maintaining sensible defaults across your organization.

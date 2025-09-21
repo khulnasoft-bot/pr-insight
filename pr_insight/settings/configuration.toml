@@ -348,23 +348,66 @@ service_callback = []
 skip_comments = false
 force_update_dataset = false
 max_issues_to_scan = 500
-vectordb = "pinecone"
+vectordb = "qdrant"
 
-[pr_find_similar_component]
-class_name = ""
-file = ""
-search_from_org = false
-allow_fallback_less_words = true
-number_of_keywords = 5
-number_of_results = 5
+[repository_metadata]
+# Repository-specific metadata configuration for enhanced context
+# These settings help provide better context awareness for AI models
+
+# Enable repository-specific metadata injection
+enabled = true
+
+# Repository type classification for better context understanding
+# Options: "application", "library", "framework", "tool", "documentation", "config", "other"
+repository_type = "other"
+
+# Technology stack identification (comma-separated)
+# Examples: "python,fastapi,postgresql", "javascript,react,nodejs", "java,spring,mysql"
+technology_stack = ""
+
+# Repository maturity level
+# Options: "experimental", "development", "stable", "mature", "legacy"
+maturity_level = "development"
+
+# Project complexity level
+# Options: "simple", "moderate", "complex", "enterprise"
+complexity_level = "moderate"
+
+# Custom repository context (free-form description)
+# This can be used to provide domain-specific context to AI models
+custom_context = ""
+
+# Repository-specific best practices
+# Path to repository-specific best practices file (relative to repo root)
+best_practices_file = ""
+
+# Repository-specific guidelines
+# Path to coding guidelines or contribution guidelines (relative to repo root)
+guidelines_file = ""
+
+# Enable automatic repository context discovery
+auto_discover_context = true
+
+# Maximum files to analyze for context discovery (performance setting)
+max_context_files = 50
+
+# Repository-specific prompt enhancements
+# These will be automatically added to prompts for better context
+context_enhancements = [
+    "Consider the repository's specific patterns and conventions",
+    "Follow the established coding standards for this project",
+    "Maintain consistency with existing architectural decisions"
+]
 
 [pinecone]
 # fill and place in .secrets.toml
 #api_key = ...
 # environment = "gcp-starter"
 
-[lancedb]
-uri = "./lancedb"
+[qdrant]
+# Qdrant vector database configuration
+# url = "http://localhost:6333"  # Qdrant server URL
+# api_key = ""  # Optional API key for Qdrant Cloud
 
 [best_practices]
 content = ""
