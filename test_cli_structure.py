@@ -2,8 +2,8 @@
 """
 Simple test script to verify CLI structure without dependencies
 """
-import sys
 import os
+import sys
 
 # Add the project root to sys.path
 sys.path.insert(0, '/Users/dev/pr-insight')
